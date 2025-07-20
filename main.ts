@@ -1,5 +1,6 @@
 import { App, Notice, Plugin, PluginSettingTab, Setting, Menu, TAbstractFile } from 'obsidian';
 import { join } from 'path';
+import { formatDistance } from "date-fns";
 
 interface JpPluginSettings {
 	mySetting: string;
@@ -11,6 +12,7 @@ const DEFAULT_SETTINGS: JpPluginSettings = {
 
 export default class JpPlugin extends Plugin {
 	settings: JpPluginSettings;
+	statusBarItem: HTMLElement;
 
 	async onload() {
 		await this.loadSettings();
@@ -27,6 +29,17 @@ export default class JpPlugin extends Plugin {
 			name: 'Copy Relative Path',
 			callback: () => this.copyRelativePath(),
 		});
+
+		// Date/Time tracking commands
+		this.addCommand({
+			id: "current-note-date",
+			name: "Current Note Date",
+			callback: () => this.currentNodeDate(),
+		});
+
+		// Register file open event for status bar updates
+		this.registerEvent(this.app.workspace.on("file-open", this.updateInfo.bind(this)));
+		this.addInfoToStatusBar();
 
 		// Register file context menu
 		this.registerEvent(
@@ -136,6 +149,124 @@ export default class JpPlugin extends Plugin {
 						});
 				});
 		});
+	}
+
+	/**
+	 * Converts a Zettelkasten ID to a Date object
+	 */
+	zettelkastenIdToDate(id: string): Date | null {
+		if (!/^\d{12}$/.test(id)) {
+			console.error("Invalid Zettelkasten ID. It must be a 12-digit string.");
+			return null;
+		}
+
+		const year = parseInt(id.slice(0, 4), 10);
+		const month = parseInt(id.slice(4, 6), 10) - 1; // Months are zero-indexed in JavaScript Date
+		const day = parseInt(id.slice(6, 8), 10);
+		const hour = parseInt(id.slice(8, 10), 10);
+		const minute = parseInt(id.slice(10, 12), 10);
+
+		return new Date(year, month, day, hour, minute);
+	}
+
+	/**
+	 * Calculates the distance between two dates in a human-readable format
+	 */
+	getDateDistance(d1: Date, d2: Date): string {
+		let years = d2.getFullYear() - d1.getFullYear();
+		let months = d2.getMonth() - d1.getMonth();
+		let days = d2.getDate() - d1.getDate();
+
+		if (days < 0) {
+			months--;
+			const prevMonth = new Date(d2.getFullYear(), d2.getMonth(), 0);
+			days += prevMonth.getDate();
+		}
+
+		if (months < 0) {
+			years--;
+			months += 12;
+		}
+
+		const isNegative = d1 > d2;
+		const parts = [];
+		if (years !== 0) parts.push(`${Math.abs(years)} year(s)`);
+		if (months !== 0) parts.push(`${Math.abs(months)} month(s)`);
+		if (days !== 0) parts.push(`${Math.abs(days)} day(s)`);
+
+		if (!parts.length) return "Age: Today";
+
+		let result = parts.join(", ");
+		if (isNegative) result = `Age: ${result} remaining`;
+
+		return `Age: ${result} ago`;
+	}
+
+	/**
+	 * Adds the status bar item for displaying note age
+	 */
+	addInfoToStatusBar() {
+		this.statusBarItem = this.addStatusBarItem();
+		this.statusBarItem.className = "extra-note-info";
+		this.statusBarItem.textContent = "";
+
+		this.updateInfo();
+	}
+
+	/**
+	 * Updates the status bar with current note age information
+	 */
+	async updateInfo() {
+		const file = this.app.workspace.getActiveFile();
+		if (!file) {
+			this.statusBarItem.textContent = "";
+			return;
+		}
+
+		const zettelRegex = /^(\d{12})(?: (.+))?$/;
+		const match = file.basename.match(zettelRegex);
+
+		if (!match) {
+			this.statusBarItem.textContent = "";
+			return;
+		}
+
+		const [, zettelkastenId] = match;
+		const noteDate = this.zettelkastenIdToDate(zettelkastenId);
+		if (!noteDate) {
+			this.statusBarItem.textContent = "";
+			return;
+		}
+
+		this.statusBarItem.textContent = this.getDateDistance(noteDate, new Date());
+	}
+
+	/**
+	 * Shows the creation date of the current note as a notice
+	 */
+	currentNodeDate() {
+		const file = this.app.workspace.getActiveFile();
+		if (!file) {
+			new Notice("No active file");
+			return;
+		}
+
+		const zettelRegex = /^(\d{12})(?: (.+))?$/;
+		const match = file.basename.match(zettelRegex);
+
+		if (!match) {
+			new Notice("No valid Zettelkasten ID found in the file name.");
+			return;
+		}
+
+		const [, zettelkastenId] = match;
+		const noteDate = this.zettelkastenIdToDate(zettelkastenId);
+		if (!noteDate) {
+			new Notice("Invalid Zettelkasten ID format.");
+			return;
+		}
+
+		new Notice(formatDistance(noteDate, new Date()) + " ago");
 	}
 }
 
