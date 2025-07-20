@@ -82,6 +82,61 @@ The plugin recognizes Zettelkasten IDs in the format `YYYYMMDDHHMM` at the begin
 - **Workflow Tracking**: Monitor note creation patterns and productivity
 - **Research Timeline**: Track the chronological development of ideas and projects
 
+### Zettelkasten ID Management
+
+Generate and append timestamp-based unique identifiers to your notes for better organization and linking.
+
+#### Commands
+
+- **Append Zettelkasten ID** - Generates and appends a new Zettelkasten ID to the active note
+
+#### Ribbon Icon
+
+- **Message Square Plus Icon** - Quick access button in the left ribbon for appending IDs
+
+#### ID Format
+
+Zettelkasten IDs are generated in the format `YYYYMMDDHHMM`:
+- `202507201930` (July 20, 2025 at 19:30)
+- `202501151420` (January 15, 2025 at 14:20)
+- `202412311159` (December 31, 2024 at 11:59)
+
+#### Functionality
+
+- **Timestamp-based**: IDs are generated using current date and time
+- **Automatic Appending**: Adds the ID to the end of the active note content
+- **Cursor Positioning**: Automatically moves cursor to the end after appending
+- **Visual Feedback**: Shows a notice with the generated ID
+
+#### Usage Examples
+
+**Before:**
+```
+# My Research Note
+
+This is some content about my research.
+```
+
+**After (using Append Zettelkasten ID):**
+```
+# My Research Note
+
+This is some content about my research.
+
+202507201930
+```
+
+**Notice Output:**
+- `Zettelkasten ID appended: 202507201930`
+
+#### Use Cases
+
+- **Unique Identification**: Create unique identifiers for notes without changing filenames
+- **Cross-referencing**: Use IDs for linking and referencing between notes
+- **Chronological Organization**: Maintain temporal order in your note system
+- **Backup References**: Have internal IDs that persist regardless of file location
+- **Integration**: Use with other Zettelkasten tools and workflows
+
 ## Installation
 
 1. Copy the plugin files to your vault's `.obsidian/plugins/jp-plugin/` directory

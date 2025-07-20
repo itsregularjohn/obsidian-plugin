@@ -37,6 +37,16 @@ export default class JpPlugin extends Plugin {
 			callback: () => this.currentNodeDate(),
 		});
 
+		// Zettelkasten ID management commands
+		this.addCommand({
+			id: "append-zettelkasten-id",
+			name: "Append Zettelkasten ID",
+			callback: () => this.appendZettelkastenID(),
+		});
+
+		// Add ribbon icon for quick access
+		this.addRibbonIcon("message-square-plus", "Append Zettelkasten ID", () => this.appendZettelkastenID());
+
 		// Register file open event for status bar updates
 		this.registerEvent(this.app.workspace.on("file-open", this.updateInfo.bind(this)));
 		this.addInfoToStatusBar();
@@ -267,6 +277,45 @@ export default class JpPlugin extends Plugin {
 		}
 
 		new Notice(formatDistance(noteDate, new Date()) + " ago");
+	}
+
+	/**
+	 * Generates a Zettelkasten ID based on current timestamp
+	 */
+	generateZettelkastenID(): string {
+		const now = new Date();
+		const year = now.getFullYear();
+		const month = (now.getMonth() + 1).toString().padStart(2, "0");
+		const day = now.getDate().toString().padStart(2, "0");
+		const hour = now.getHours().toString().padStart(2, "0");
+		const minute = now.getMinutes().toString().padStart(2, "0");
+
+		return `${year}${month}${day}${hour}${minute}`;
+	}
+
+	/**
+	 * Appends a new Zettelkasten ID to the active file
+	 */
+	async appendZettelkastenID() {
+		const file = this.app.workspace.getActiveFile();
+		if (!file) {
+			new Notice("No active file");
+			return;
+		}
+
+		const fileContent = await this.app.vault.read(file);
+		const zettelID = this.generateZettelkastenID();
+		const updatedContent = `${fileContent}\n${zettelID}`;
+
+		await this.app.vault.modify(file, updatedContent);
+
+		// Move cursor to the end of the file if editor is available
+		const editor = this.app.workspace.activeEditor;
+		if (editor?.editor) {
+			editor.editor?.setCursor(updatedContent.length);
+		}
+
+		new Notice(`Zettelkasten ID appended: ${zettelID}`);
 	}
 }
 
