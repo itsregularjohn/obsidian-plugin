@@ -186,28 +186,27 @@ export default class JpPlugin extends Plugin {
 	}
 
 	/**
-	 * Appends a new Zettelkasten ID to the active file
+	 * Inserts a new Zettelkasten ID at the cursor position
 	 */
 	async appendZettelkastenID() {
-		const file = this.app.workspace.getActiveFile();
-		if (!file) {
-			new Notice("No active file");
+		const editor = this.app.workspace.activeEditor?.editor;
+		if (!editor) {
+			new Notice("No active editor");
 			return;
 		}
 
-		const fileContent = await this.app.vault.read(file);
 		const zettelID = this.generateZettelkastenID();
-		const updatedContent = `${fileContent}\n${zettelID}`;
+		const cursor = editor.getCursor();
 
-		await this.app.vault.modify(file, updatedContent);
+		editor.replaceRange(zettelID, cursor);
 
-		// Move cursor to the end of the file if editor is available
-		const editor = this.app.workspace.activeEditor;
-		if (editor?.editor) {
-			editor.editor?.setCursor(updatedContent.length);
-		}
+		const newCursor = {
+			line: cursor.line,
+			ch: cursor.ch + zettelID.length
+		};
+		editor.setCursor(newCursor);
 
-		new Notice(`Zettelkasten ID appended: ${zettelID}`);
+		new Notice(`Zettelkasten ID inserted: ${zettelID}`);
 	}
 }
 
