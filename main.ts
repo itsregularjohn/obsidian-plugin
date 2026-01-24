@@ -75,13 +75,20 @@ export default class JpPlugin extends Plugin {
 	 * Calculates the distance between two dates in a human-readable format
 	 */
 	getDateDistance(d1: Date, d2: Date): string {
-		let years = d2.getFullYear() - d1.getFullYear();
-		let months = d2.getMonth() - d1.getMonth();
-		let days = d2.getDate() - d1.getDate();
+		// Determine if the note date is in the future
+		const isFuture = d1 > d2;
+
+		// Always calculate from earlier to later date
+		const earlierDate = isFuture ? d2 : d1;
+		const laterDate = isFuture ? d1 : d2;
+
+		let years = laterDate.getFullYear() - earlierDate.getFullYear();
+		let months = laterDate.getMonth() - earlierDate.getMonth();
+		let days = laterDate.getDate() - earlierDate.getDate();
 
 		if (days < 0) {
 			months--;
-			const prevMonth = new Date(d2.getFullYear(), d2.getMonth(), 0);
+			const prevMonth = new Date(laterDate.getFullYear(), laterDate.getMonth(), 0);
 			days += prevMonth.getDate();
 		}
 
@@ -90,16 +97,17 @@ export default class JpPlugin extends Plugin {
 			months += 12;
 		}
 
-		const isNegative = d1 > d2;
 		const parts = [];
-		if (years !== 0) parts.push(`${Math.abs(years)} year(s)`);
-		if (months !== 0) parts.push(`${Math.abs(months)} month(s)`);
-		if (days !== 0) parts.push(`${Math.abs(days)} day(s)`);
+		if (years !== 0) parts.push(`${years} year(s)`);
+		if (months !== 0) parts.push(`${months} month(s)`);
+		if (days !== 0) parts.push(`${days} day(s)`);
 
 		if (!parts.length) return "Age: Today";
 
-		let result = parts.join(", ");
-		if (isNegative) result = `Age: ${result} remaining`;
+		const result = parts.join(", ");
+		if (isFuture) {
+			return `Age: ${result} remaining`;
+		}
 
 		return `Age: ${result} ago`;
 	}
